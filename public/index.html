@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>下班启动器</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "PingFang SC", "Microsoft YaHei", Arial, sans-serif; margin: 24px; }
+    .box { max-width: 720px; margin: 0 auto; }
+    textarea { width: 100%; min-height: 88px; padding: 12px; font-size: 16px; }
+    button { margin-top: 12px; padding: 10px 14px; font-size: 16px; }
+    .out { white-space: pre-wrap; margin-top: 16px; padding: 12px; border: 1px solid #ddd; border-radius: 10px; min-height: 80px; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .hint { color: #666; font-size: 14px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>下班启动器</h1>
+    <p class="hint">只写一句话：你现在必须推进的事情是什么？</p>
+
+    <textarea id="task" placeholder="例如：不想弄简历，但必须推进一下"></textarea>
+
+    <div class="row">
+      <button id="go">给我一个2分钟动作</button>
+      <button id="eg" type="button">填入示例</button>
+      <button id="cp" type="button">复制结果</button>
+    </div>
+
+    <div class="out" id="out"></div>
+  </div>
+
+  <script>
+    const out = document.getElementById('out');
+    const btn = document.getElementById('go');
+
+    document.getElementById('eg').onclick = () => {
+      document.getElementById('task').value = "不想做周报，但必须推进一下";
+      document.getElementById('task').focus();
+    };
+
+    document.getElementById('cp').onclick = async () => {
+      const text = out.textContent || "";
+      if (!text.trim()) return;
+      try { await navigator.clipboard.writeText(text); }
+      catch { /* ignore */ }
+    };
+
+    btn.onclick = async () => {
+      const task = document.getElementById('task').value.trim();
+      if (!task) { out.textContent = "先写一句话任务。"; return; }
+
+      out.textContent = "生成中…";
+      btn.disabled = true;
+
+      try {
+        const res = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ task })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "请求失败");
+        out.textContent = data.text || "(无输出)";
+      } catch (e) {
+        out.textContent = "出错了：" + e.message;
+      } finally {
+        btn.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>
